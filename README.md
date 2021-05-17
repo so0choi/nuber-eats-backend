@@ -2,7 +2,7 @@
 
 Uber Eats 백엔드
 
-## User Model
+## User Entity
 
 - id
 - createdAt

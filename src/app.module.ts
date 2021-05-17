@@ -3,9 +3,9 @@ import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as Joi from 'joi'; //because it's not typescript module! it's javascript module
-import { Restaurant } from './restaurants/entities/restaurant.entity';
-// use joi for parameter validation
-import { RestaurantsModule } from './restaurants/restaurants.module';
+import { UsersModule } from './users/users.module';
+import { CommonModule } from './common/common.module';
+import { User } from './users/entities/user.entity';
 
 @Module({
   imports: [
@@ -25,7 +25,6 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
     GraphQLModule.forRoot({
       autoSchemaFile: true,
     }),
-    RestaurantsModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -35,8 +34,10 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== 'prod', // logging
       logging: true,
-      entities: [Restaurant], //this is going to be a TABLE
+      entities: [User], //this is going to be a TABLE
     }),
+    UsersModule,
+    CommonModule,
   ],
   controllers: [],
   providers: [],
