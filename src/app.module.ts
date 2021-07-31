@@ -6,10 +6,10 @@ import { join } from 'path';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 @Module({
   imports: [
-    ConfigModule.forRoot(
-      isGlobal: true,
-      envFilePath: '.env',
-    ),
+    // ConfigModule.forRoot(
+    //   isGlobal: true,
+    //   envFilePath: '.env',
+    // ),
     GraphQLModule.forRoot({
       autoSchemaFile: true,
     }),
@@ -19,7 +19,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
       host: 'localhost',
       port: 5432,
       username: 'sychoi',
-      // password: '12345',
+      password: '12345',
       database: 'nuber-eats',
       synchronize: true,
       logging: true,
