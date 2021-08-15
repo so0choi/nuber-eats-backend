@@ -29,7 +29,6 @@ import { MailModule } from './mail/mail.module';
         PRIVATE_KEY: Joi.string().required(),
         MAILGUN_APIKEY: Joi.string().required(),
         MAILGUN_DOMAIN_NAME: Joi.string().required(),
-        MAILGUN_FROM_EMAIL: Joi.string().required(),
       }),
     }),
     GraphQLModule.forRoot({
@@ -54,7 +53,6 @@ import { MailModule } from './mail/mail.module';
     MailModule.forRoot({
       apiKey: process.env.MAILGUN_APIKEY,
       domain: process.env.MAILGUN_DOMAIN_NAME,
-      fromEmail: process.env.MAILGUN_FROM_EMAIL,
     }),
   ],
   controllers: [],
