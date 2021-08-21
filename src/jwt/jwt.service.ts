@@ -3,6 +3,7 @@ import { JwtModuleOptions } from './jwt.interfaces';
 
 import * as jwt from 'jsonwebtoken';
 import { CONFIG_OPTIONS } from 'src/common/common.constants';
+import { JwtPayload } from 'jsonwebtoken';
 
 @Injectable()
 export class JwtService {
@@ -12,7 +13,7 @@ export class JwtService {
   sign(userId: number): string {
     return jwt.sign({ id: userId }, this.options.privateKey);
   }
-  verify(token: string) {
+  verify(token: string): JwtPayload | string {
     return jwt.verify(token, this.options.privateKey);
   }
 }

@@ -1,9 +1,8 @@
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Jwt } from 'jsonwebtoken';
 import { JwtService } from 'src/jwt/jwt.service';
 import { MailService } from 'src/mail/mail.service';
-import { getRepository, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { Verification } from './entities/verification.entity';
 import { UserService } from './users.service';
@@ -12,16 +11,18 @@ const mockRepository = () => ({
   findOne: jest.fn(),
   save: jest.fn(),
   create: jest.fn(),
+  findOneOrFail: jest.fn(),
+  delete: jest.fn(),
 });
 
-const mockJwtService = {
+const mockJwtService = () => ({
   sign: jest.fn(() => 'signed-token'),
   verify: jest.fn(),
-};
+});
 
-const mockMailService = {
+const mockMailService = () => ({
   sendVerificationEmail: jest.fn(),
-};
+});
 
 type MockRepository<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
@@ -46,11 +47,11 @@ describe('UserService', () => {
         },
         {
           provide: JwtService,
-          useValue: mockJwtService,
+          useValue: mockJwtService(),
         },
         {
           provide: MailService,
-          useValue: mockMailService,
+          useValue: mockMailService(),
         },
       ],
     }).compile();
@@ -176,7 +177,104 @@ describe('UserService', () => {
       expect(result).toEqual({ ok: false, error: mockErr });
     });
   });
-  it.todo('findUserById');
-  it.todo('editProfile');
-  it.todo('verifyEmail');
+  const findUserByIdArgs = { id: 1 };
+  describe('findUserById', () => {
+    it('should find an existing user', async () => {
+      usersRepository.findOneOrFail.mockResolvedValue(findUserByIdArgs);
+      const result = await service.findUserById(1);
+      expect(result).toEqual({ ok: true, user: findUserByIdArgs });
+    });
+
+    it('should fail if no user found', async () => {
+      usersRepository.findOneOrFail.mockRejectedValue(new Error('mock error'));
+      const result = await service.findUserById(1);
+      expect(result).toEqual({ ok: false, error: 'User not found' });
+    });
+  });
+  describe('editProfile', () => {
+    it('should change email', async () => {
+      const oldUser = { email: 'old@email.com', verified: true };
+      const editProfileArgs = { userId: 1, input: { email: 'new@email.com' } };
+      const newVerification = { code: 'code' };
+      const newUser = { verified: false, email: editProfileArgs.input.email };
+      usersRepository.findOne.mockResolvedValue(oldUser);
+      verificationRepository.create.mockReturnValue(newVerification);
+      verificationRepository.save.mockResolvedValue(newVerification);
+      await service.editProfile(editProfileArgs.userId, editProfileArgs.input);
+
+      expect(usersRepository.findOne).toHaveBeenCalledWith(
+        editProfileArgs.userId,
+      );
+      expect(usersRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(verificationRepository.create).toHaveBeenCalledWith({
+        user: newUser,
+      });
+      expect(verificationRepository.save).toHaveBeenCalledWith(newVerification);
+
+      expect(mailService.sendVerificationEmail).toHaveBeenCalledTimes(1);
+      expect(mailService.sendVerificationEmail).toHaveBeenCalledWith(
+        newUser.email,
+        newVerification.code,
+      );
+    });
+
+    it('should change password', async () => {
+      const oldUser = { password: 'old-password' };
+      const editProfileArgs = {
+        userId: 1,
+        input: { password: 'new-password' },
+      };
+      usersRepository.findOne.mockResolvedValue(oldUser);
+      usersRepository.save.mockResolvedValue(editProfileArgs.input);
+
+      const result = await service.editProfile(
+        editProfileArgs.userId,
+        editProfileArgs.input,
+      );
+
+      expect(usersRepository.save).toHaveBeenCalledTimes(1);
+      expect(usersRepository.save).toHaveBeenCalledWith(editProfileArgs.input);
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('should fail on exception', async () => {
+      const error = new Error('error');
+      usersRepository.findOne.mockRejectedValue(error);
+      const result = await service.editProfile(1, { email: 'lalala' });
+      expect(result).toEqual({ ok: false, error: 'Could not update profile' });
+    });
+  });
+
+  describe('verifyEmail', () => {
+    it('should verify email', async () => {
+      const mockedVerification = { user: { verified: false }, id: 1 };
+      verificationRepository.findOne.mockResolvedValue(mockedVerification);
+
+      const result = await service.verifyEmail('verify-code');
+      expect(verificationRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(verificationRepository.findOne).toHaveBeenLastCalledWith(
+        expect.any(Object),
+        expect.any(Object),
+      );
+      expect(usersRepository.save).toHaveBeenCalledTimes(1);
+      expect(usersRepository.save).toHaveBeenCalledWith({ verified: true });
+      expect(verificationRepository.delete).toHaveBeenCalledTimes(1);
+      expect(verificationRepository.delete).toHaveBeenCalledWith(
+        mockedVerification.id,
+      );
+
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('should fail on verification not found', async () => {
+      verificationRepository.findOne.mockResolvedValue(null);
+      const result = await service.verifyEmail('verify-code');
+      expect(result).toEqual({ ok: false, error: 'Verification not found' });
+    });
+    it('should fail on exception', async () => {
+      verificationRepository.findOne.mockRejectedValue(new Error('err'));
+      const result = await service.verifyEmail('verify-code');
+      expect(result).toEqual({ ok: false, error: 'Could not verify email' });
+    });
+  });
 });

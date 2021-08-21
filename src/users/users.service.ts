@@ -76,20 +76,15 @@ export class UserService {
 
   async findUserById(id: number): Promise<UserProfileOutput> {
     try {
-      const user = await this.users.findOne(id);
+      const user = await this.users.findOneOrFail(id);
       if (user) {
         return {
           ok: true,
           user,
         };
       }
-      return { ok: false, error: 'User not found' };
     } catch (error) {
-      console.log(error);
-      return {
-        ok: false,
-        error,
-      };
+      return { ok: false, error: 'User not found' };
     }
   }
 
@@ -113,7 +108,8 @@ export class UserService {
         ok: true,
       };
     } catch (error) {
-      return { ok: false, error };
+      //console.error(error);
+      return { ok: false, error: 'Could not update profile' };
     }
   }
 
@@ -132,8 +128,8 @@ export class UserService {
       }
       return { ok: false, error: 'Verification not found' };
     } catch (error) {
-      console.log(error);
-      return { ok: false, error };
+      // console.log(error);
+      return { ok: false, error: 'Could not verify email' };
     }
   }
 }
