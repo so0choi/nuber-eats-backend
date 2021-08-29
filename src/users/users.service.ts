@@ -95,8 +95,16 @@ export class UserService {
     try {
       const user = await this.users.findOne(userId);
       if (email) {
+        const isEmailUsed = await this.users.findOne({ email: email });
+        if (isEmailUsed) {
+          return {
+            ok: false,
+            error: 'This email is already in use',
+          };
+        }
         user.email = email;
         user.verified = false;
+        this.verifications.delete({ user: { id: user.id } });
         const verification = await this.verifications.save(
           this.verifications.create({ user }),
         );
@@ -108,7 +116,7 @@ export class UserService {
         ok: true,
       };
     } catch (error) {
-      //console.error(error);
+      console.log(error);
       return { ok: false, error: 'Could not update profile' };
     }
   }
